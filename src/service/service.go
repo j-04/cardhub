@@ -1,8 +1,10 @@
 package service
 
 import (
-	"github.com/j-04/cardhub/model"
+	"context"
+
 	"github.com/j-04/cardhub/repository"
+	"github.com/j-04/cardhub/types"
 )
 
 type Service struct {
@@ -15,6 +17,14 @@ func NewService() *Service {
 	}
 }
 
-func (service *Service) GetWords(pageSize int, pageNumber int) []model.Word {
-	return service.repository.GetWords(pageSize, pageNumber)
+func (service *Service) GetWords(context context.Context, pageSize int, pageNumber int) ([]types.Word, error) {
+	return service.repository.GetWords(context, pageSize, pageNumber)
+}
+
+func (service *Service) SaveWords(context context.Context, words []types.Word) error {
+	return service.repository.SaveWords(context, words)
+}
+
+func (service *Service) UpdateWord(context context.Context, wordId int64, newWord types.Word) error {
+	return service.repository.UpdateWord(context, wordId, newWord)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/j-04/cardhub/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,11 +25,13 @@ func main() {
 	root.Use(middleware.Heartbeat("/ping"))
 
 	log.Println("creating routes...")
-	root.Get("/", handler.HandleGreetings)
+	root.Get("/", handleError(handler.HandleGreetings))
 
 	api := chi.NewRouter()
-	api.Get("/words", handler.HandleGetWords)
-	api.Post("/words", handler.HandleSaveWord)
+
+	api.Get("/words", handleError(handler.HandleGetWords))
+	api.Post("/words", handleError(handler.HandleSaveWord))
+	api.Put("/words/{wordId}", handleError(handler.HandlerUpdateWord))
 
 	root.Mount("/api/v1", api)
 
@@ -36,6 +39,33 @@ func main() {
 	err := http.ListenAndServe(config.GetHostAndPort(), root)
 	if err != nil {
 		log.Fatalln(err.Error())
+	}
+}
+
+type HandlerWithErrorFunc func(res http.ResponseWriter, req *http.Request) error
+
+func handleError(handler HandlerWithErrorFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := handler(w, r)
+		if err != nil {
+			if err, ok := err.(types.ValidationErr); ok {
+				log.Println("Validation was failed with msg:", err.Msg)
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write(writeJson(map[string]string{"error": err.Msg}))
+				return
+			}
+
+			if err, ok := err.(types.NotFoundErr); ok {
+				log.Println("Something was not found:", err.Msg)
+				w.WriteHeader(http.StatusNotFound)
+				w.Write(writeJson(map[string]string{"error": err.Msg}))
+				return
+			}
+
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(writeJson(map[string]string{"error": err.Error()}))
+			return
+		}
 	}
 }
 
