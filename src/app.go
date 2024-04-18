@@ -29,6 +29,13 @@ func main() {
 
 	api := chi.NewRouter()
 
+	api.Get("/decks", handleError(handler.HandleGetDecks))
+	api.Get("/decks/{deckId}", handleError(handler.HandleGetDeck))
+	api.Post("/decks", handleError(handler.HandleSaveDeck))
+	api.Put("/decks/{deckId}", handleError(handler.HandlePutWordsInDeck))
+	api.Delete("/decks/{deckId}", handleError(handler.HandleDeleteDeck))
+	api.Delete("/decks/{deckId}/words/{wordId}", handleError(handler.HandleDeleteWordInPeck))
+
 	api.Get("/words", handleError(handler.HandleGetWords))
 	api.Post("/words", handleError(handler.HandleSaveWord))
 	api.Put("/words/{wordId}", handleError(handler.HandlerUpdateWord))
@@ -83,7 +90,7 @@ func loadConfig() *Config {
 	log.Printf("application profile %s detected\n", profile)
 	log.Printf("loading file %s", fileName)
 
-	bytes, err := os.ReadFile(fileName)
+	bytes, err := os.ReadFile("resources/" + fileName)
 	if err != nil {
 		log.Fatalf("Couldn't read file %s. Error: %s", fileName, err.Error())
 	}

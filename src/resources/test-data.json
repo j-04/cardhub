@@ -1,0 +1,22 @@
+{
+  "0": {
+    "id": 0,
+    "name": "Deck 1",
+    "words": [
+      {
+        "id": 0,
+        "front": "hello",
+        "back": "Привет",
+        "reversable": true,
+        "info": "Hello! How are you doing?\nПривет! Как у тебя дела?"
+      },
+      {
+        "id": 1,
+        "front": "Goodbye",
+        "back": "Пока, До свидания",
+        "reversable": true,
+        "info": "Goodbye!\nПока!"
+      }
+    ]
+  }
+}

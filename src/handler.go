@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -28,6 +29,114 @@ func (handler *RequestHandler) HandleGreetings(res http.ResponseWriter, req *htt
 	return nil
 }
 
+func (handler *RequestHandler) HandleGetDecks(res http.ResponseWriter, req *http.Request) error {
+	context := context.Background()
+	decks, err := handler.service.GetDecks(context)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := json.Marshal(decks)
+	if err != nil {
+		return err
+	}
+
+	writeResponse(bytes, res)
+	return nil
+}
+
+func (handler *RequestHandler) HandleGetDeck(res http.ResponseWriter, req *http.Request) error {
+	context := context.Background()
+
+	deckId, err := parseIdUrlParam(req, "deckId")
+	if err != nil {
+		return err
+	}
+
+	deck, err := handler.service.GetDeck(context, deckId)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := json.Marshal(deck)
+	if err != nil {
+		return err
+	}
+
+	writeResponse(bytes, res)
+	return nil
+}
+
+func (handler *RequestHandler) HandleSaveDeck(res http.ResponseWriter, req *http.Request) error {
+	context := context.Background()
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return err
+	}
+
+	var deck types.Deck
+
+	err = json.Unmarshal(body, &deck)
+	if err != nil {
+		return err
+	}
+
+	err = handler.service.SaveDeck(context, deck)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (handler *RequestHandler) HandlePutWordsInDeck(res http.ResponseWriter, req *http.Request) error {
+	context := context.Background()
+
+	deckId, err := parseIdUrlParam(req, "deckId")
+	if err != nil {
+		return err
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return err
+	}
+
+	var words []types.Word
+	err = json.Unmarshal(body, &words)
+	if err != nil {
+		return err
+	}
+
+	return handler.service.PutWordsInDeck(context, words, deckId)
+}
+
+func (handler *RequestHandler) HandleDeleteDeck(res http.ResponseWriter, req *http.Request) error {
+	context := context.Background()
+
+	deckId, err := parseIdUrlParam(req, "deckId")
+	if err != nil {
+		return err
+	}
+
+	return handler.service.DeleteDeck(context, deckId)
+}
+
+func (handler *RequestHandler) HandleDeleteWordInPeck(res http.ResponseWriter, req *http.Request) error {
+	context := context.Background()
+
+	deckId, err := parseIdUrlParam(req, "deckId")
+	if err != nil {
+		return err
+	}
+	wordId, err := parseIdUrlParam(req, "wordId")
+	if err != nil {
+		return err
+	}
+
+	return handler.service.DeleteWordInDeck(context, deckId, wordId)
+}
+
 func (handler *RequestHandler) HandleGetWords(res http.ResponseWriter, req *http.Request) error {
 	context := context.Background()
 
@@ -47,23 +156,7 @@ func (handler *RequestHandler) HandleGetWords(res http.ResponseWriter, req *http
 	}
 
 	writeResponse(bytes, res)
-
 	return nil
-}
-
-func validateGetWordsRequest(req *http.Request) (page int, size int, err error) {
-	page, errPage := strconv.Atoi(req.URL.Query().Get("page"))
-	size, errSize := strconv.Atoi(req.URL.Query().Get("size"))
-	if errPage != nil || errSize != nil {
-		log.Printf("Validation failed. Page: %v, size: %v", errPage, errSize)
-
-		err = types.ValidationErr{
-			Msg: "page or size param are invalid. Params should be integer value and not empty.",
-		}
-
-		return
-	}
-	return
 }
 
 func (handler *RequestHandler) HandleSaveWord(res http.ResponseWriter, req *http.Request) error {
@@ -95,11 +188,9 @@ func (handler *RequestHandler) HandlerUpdateWord(res http.ResponseWriter, req *h
 		return err
 	}
 
-	wordId, err := strconv.ParseInt(chi.URLParam(req, "wordId"), 0, 64)
+	wordId, err := parseIdUrlParam(req, "wordId")
 	if err != nil {
-		return types.ValidationErr{
-			Msg: "wordId attribute is empty or not a number.",
-		}
+		return err
 	}
 
 	word := &types.Word{}
@@ -117,6 +208,31 @@ func (handler *RequestHandler) HandlerUpdateWord(res http.ResponseWriter, req *h
 	}
 
 	return nil
+}
+
+func validateGetWordsRequest(req *http.Request) (page int, size int, err error) {
+	page, errPage := strconv.Atoi(req.URL.Query().Get("page"))
+	size, errSize := strconv.Atoi(req.URL.Query().Get("size"))
+	if errPage != nil || errSize != nil {
+		log.Printf("Validation failed. Page: %v, size: %v", errPage, errSize)
+
+		err = types.ValidationErr{
+			Msg: "page or size param are invalid. Params should be integer value and not empty.",
+		}
+
+		return
+	}
+	return
+}
+
+func parseIdUrlParam(req *http.Request, param string) (int64, error) {
+	id, err := strconv.ParseInt(chi.URLParam(req, param), 0, 64)
+	if err != nil {
+		return 0, types.ValidationErr{
+			Msg: fmt.Sprintf("%s attribute is empty or not a number.", param),
+		}
+	}
+	return id, nil
 }
 
 func writeResponse(data []byte, res http.ResponseWriter) {
