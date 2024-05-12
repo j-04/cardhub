@@ -1,17 +1,17 @@
 {
   "0": {
-    "id": 0,
+    "id": "f7225358-0838-4275-ba99-f78e34695989",
     "name": "Deck 1",
     "words": [
       {
-        "id": 0,
+        "id": "262fd774-3f7b-47a0-b61a-30b7e0904699",
         "front": "hello",
         "back": "Привет",
         "reversable": true,
         "info": "Hello! How are you doing?\nПривет! Как у тебя дела?"
       },
       {
-        "id": 1,
+        "id": "d41dfd6a-e1d3-4203-8afd-56cfeb55dc4e",
         "front": "Goodbye",
         "back": "Пока, До свидания",
         "reversable": true,

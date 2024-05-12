@@ -8,6 +8,10 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/j-04/cardhub/config"
+	"github.com/j-04/cardhub/database"
+	"github.com/j-04/cardhub/repository"
+	"github.com/j-04/cardhub/service"
 	"github.com/j-04/cardhub/types"
 	"gopkg.in/yaml.v3"
 )
@@ -15,7 +19,20 @@ import (
 func main() {
 	config := loadConfig()
 
-	handler := NewRequestHandler()
+	var db database.DatabaseReader
+	if config.Database.Stub {
+		db = database.NewStubDatabse()
+	} else {
+		db = database.NewCassandraDatabse(config)
+	}
+
+	defer db.Close()
+
+	repository := repository.NewRepository(db)
+
+	service := service.NewService(repository)
+
+	handler := NewRequestHandler(service)
 
 	root := chi.NewRouter()
 
@@ -57,26 +74,23 @@ func handleError(handler HandlerWithErrorFunc) http.HandlerFunc {
 		if err != nil {
 			if err, ok := err.(types.ValidationErr); ok {
 				log.Println("Validation was failed with msg:", err.Msg)
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write(writeJson(map[string]string{"error": err.Msg}))
+				writeErrorResponse(w, http.StatusBadRequest, writeJson(map[string]string{"error": err.Msg}))
 				return
 			}
 
 			if err, ok := err.(types.NotFoundErr); ok {
 				log.Println("Something was not found:", err.Msg)
-				w.WriteHeader(http.StatusNotFound)
-				w.Write(writeJson(map[string]string{"error": err.Msg}))
+				writeErrorResponse(w, http.StatusNotFound, writeJson(map[string]string{"error": err.Msg}))
 				return
 			}
 
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write(writeJson(map[string]string{"error": err.Error()}))
+			writeErrorResponse(w, http.StatusInternalServerError, writeJson(map[string]string{"error": err.Error()}))
 			return
 		}
 	}
 }
 
-func loadConfig() *Config {
+func loadConfig() *config.Config {
 	profile := os.Getenv("APP_PROFILE")
 
 	var fileName string
@@ -97,11 +111,16 @@ func loadConfig() *Config {
 
 	log.Println("config file loaded succesfully")
 
-	config := &Config{}
+	config := &config.Config{}
 
 	yaml.Unmarshal(bytes, config)
 
 	bytes, _ = json.Marshal(config)
 	log.Println(string(bytes))
 	return config
+}
+
+func writeErrorResponse(w http.ResponseWriter, httpCode int, msg []byte) {
+	w.WriteHeader(httpCode)
+	w.Write(msg)
 }

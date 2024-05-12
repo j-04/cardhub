@@ -1,7 +1,7 @@
 package types
 
 type Word struct {
-	Id         int64
+	Id         string
 	Front      string `json:"front"`
 	Back       string `json:"back"`
 	Reversable bool   `json:"reversable"`
@@ -10,7 +10,7 @@ type Word struct {
 }
 
 type Deck struct {
-	Id    int64
+	Id    string
 	Name  string `json:"name"`
 	Size  int    `json:"size"`
 	Words []Word `json:"words"`

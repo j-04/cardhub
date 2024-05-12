@@ -18,9 +18,9 @@ type RequestHandler struct {
 	service *service.Service
 }
 
-func NewRequestHandler() *RequestHandler {
+func NewRequestHandler(service *service.Service) *RequestHandler {
 	return &RequestHandler{
-		service: service.NewService(),
+		service,
 	}
 }
 
@@ -225,10 +225,10 @@ func validateGetWordsRequest(req *http.Request) (page int, size int, err error) 
 	return
 }
 
-func parseIdUrlParam(req *http.Request, param string) (int64, error) {
-	id, err := strconv.ParseInt(chi.URLParam(req, param), 0, 64)
-	if err != nil {
-		return 0, types.ValidationErr{
+func parseIdUrlParam(req *http.Request, param string) (string, error) {
+	id := chi.URLParam(req, param)
+	if id == "" {
+		return "", types.ValidationErr{
 			Msg: fmt.Sprintf("%s attribute is empty or not a number.", param),
 		}
 	}
